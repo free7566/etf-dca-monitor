@@ -359,7 +359,34 @@ async function fetchAllData() {
   updateAllUI();
 }
 
-// 获取单只ETF实时行情（东方财富API）
+// ===== JSONP 工具函数 — 绕过 CORS 限制 =====
+function jsonp(url, timeoutMs = 8000) {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'jsonp_cb_' + Math.random().toString(36).substr(2, 9);
+    const script = document.createElement('script');
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error('JSONP timeout'));
+    }, timeoutMs);
+
+    function cleanup() {
+      clearTimeout(timer);
+      if (script.parentNode) script.parentNode.removeChild(script);
+      delete window[callbackName];
+    }
+
+    window[callbackName] = function(data) {
+      cleanup();
+      resolve(data);
+    };
+
+    script.src = url + (url.includes('?') ? '&' : '?') + 'cb=' + callbackName;
+    script.onerror = () => { cleanup(); reject(new Error('JSONP load error')); };
+    document.head.appendChild(script);
+  });
+}
+
+// 获取单只ETF实时行情（东方财富API — JSONP方式绕过CORS）
 async function fetchETFQuote(code) {
   const asset = CONFIG.assets.find(a => a.code === code);
   if (!asset) return null;
@@ -369,8 +396,7 @@ async function fetchETFQuote(code) {
   const url = `${CONFIG.apis.eastmoneyQuote}?secid=${secid}&fields=${fields}&ut=fa5fd1943c7b386f172d6893dbfdc4f1`;
 
   try {
-    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    const json = await resp.json();
+    const json = await jsonp(url, 8000);
     if (!json || !json.data) return null;
     const d = json.data;
     return {
@@ -394,16 +420,13 @@ async function fetchETFQuote(code) {
   }
 }
 
-// 获取纳指PE和分位数据
+// 获取纳指PE和分位数据（东方财富全球指数 — JSONP）
 async function fetchNasdaqPE() {
-  // 尝试多个数据源
   try {
-    // 源1：东方财富全球指数
-    const resp = await fetch(
+    const json = await jsonp(
       'https://push2.eastmoney.com/api/qt/stock/get?secid=100.NDX&fields=f43,f44,f45,f46,f48,f50,f51,f52,f55,f57,f58,f60,f116,f117,f162,f167,f168,f169,f170,f171',
-      { signal: AbortSignal.timeout(8000) }
+      8000
     );
-    const json = await resp.json();
     if (json && json.data) {
       const d = json.data;
       return {
@@ -411,47 +434,34 @@ async function fetchNasdaqPE() {
         nasdaqPE: d.f162 ? d.f162 / 100 : null,
       };
     }
-  } catch(e) { console.warn('纳指PE获取失败，使用默认估算:', e.message); }
+  } catch(e) { console.warn('纳指PE获取失败:', e.message); }
 
-  // 兜底：使用模拟估值数据（用户首次使用时填充，后续缓存覆盖）
-  // 注意：这仅作首次占位，实际数据通过刷新获取
-  return {
-    nasdaqPE: 32.5,
-    nasdaqPercentile: 55,
-  };
+  // 兜底：估算数据（首次占位，刷新后覆盖）
+  return { nasdaqPE: 32.5, nasdaqPercentile: 55 };
 }
 
-// 获取红利低波PB分位和股息率
+// 获取红利低波PB分位和股息率（东方财富 — JSONP）
 async function fetchDividendPB() {
   try {
-    // 东方财富指数估值
-    const resp = await fetch(
+    const json = await jsonp(
       'https://push2.eastmoney.com/api/qt/stock/get?secid=1.512890&fields=f43,f162,f167,f168,f169,f170,f171',
-      { signal: AbortSignal.timeout(8000) }
+      8000
     );
-    const json = await resp.json();
     if (json && json.data) {
       const d = json.data;
-      return {
-        pb: d.f167 ? d.f167 / 100 : null,
-        pe: d.f162 ? d.f162 / 100 : null,
-      };
+      return { pb: d.f167 ? d.f167 / 100 : null, pe: d.f162 ? d.f162 / 100 : null };
     }
   } catch(e) { console.warn('红利低波数据获取失败:', e.message); }
   return {};
 }
 
-// 获取黄金数据
+// 获取黄金数据（Gold API — fetch方式，该API支持CORS）
 async function fetchGoldData() {
   try {
-    // 国际金价
     const resp = await fetch('https://api.gold-api.com/price/XAU', { signal: AbortSignal.timeout(8000) });
     const json = await resp.json();
     if (json && json.price) {
-      return {
-        goldPriceUSD: json.price,
-        goldPriceCNY: json.price * 7.25, // 粗略换算
-      };
+      return { goldPriceUSD: json.price, goldPriceCNY: json.price * 7.25 };
     }
   } catch(e) { console.warn('黄金价格获取失败:', e.message); }
   return {};
