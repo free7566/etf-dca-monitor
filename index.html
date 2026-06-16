@@ -317,155 +317,75 @@ function loadTheme() {
   if (saved === 'light') { isDark = false; toggleTheme(); }
 }
 
-// =========================== 数据获取 ===========================
+// =========================== 数据获取（读本地 data.json，同源无CORS） ===========================
 async function fetchAllData() {
   const codes = ['511580','512890','513100','518880'];
   const results = {};
 
-  // 并行获取所有ETF实时行情
-  const quotePromises = codes.map(code => fetchETFQuote(code));
-
   try {
-    const quotes = await Promise.all(quotePromises);
-    codes.forEach((code, i) => {
-      results[code] = quotes[i] || {};
+    // 从同源 data.json 读取（GitHub Actions每30分钟更新）
+    const resp = await fetch('data.json?t=' + Date.now(), { cache: 'no-cache' });
+    if (!resp.ok) throw new Error('data.json load failed');
+    const json = await resp.json();
+    const etfs = json.etfs || [];
+
+    // 将数组格式转为 assetData 的字典格式 { code: {...} }
+    etfs.forEach(etf => {
+      results[etf.code] = {
+        code: etf.code,
+        name: etf.name,
+        price: etf.price,
+        prevClose: etf.prev_close,
+        changePct: etf.change_pct,
+        high: etf.high,
+        low: etf.low,
+        volume: etf.volume,
+        date: etf.date,
+        // 纳指估值
+        nasdaqPE: etf.nasdaq_pe || null,
+        nasdaqPercentile: etf.nasdaq_percentile || null,
+        nasdaqPrice: etf.nasdaq_price || null,
+        // 黄金
+        goldPriceUSD: etf.gold_price_usd || null,
+        goldPriceCNY: etf.gold_price_cny || null,
+        // PB/股息（如有）
+        pb: etf.pb || null,
+        pbPercentile: etf.pb_percentile || null,
+        dividendYield: etf.dividend_yield || null,
+        pe: etf.pe || null,
+      };
     });
+
+    // 补充缺失的ETF
+    codes.forEach(code => {
+      if (!results[code]) results[code] = { code, price: null };
+    });
+
+    document.getElementById('dataDelayBadge').classList.add('hidden');
+    document.getElementById('updateTime').textContent = '数据更新：' + (json.update_time || new Date().toLocaleTimeString('zh-CN'));
   } catch(e) {
-    console.warn('部分API请求失败，使用缓存数据:', e.message);
-    // 失败时使用缓存
+    console.warn('data.json加载失败，使用缓存:', e.message);
+    // 失败时使用 localStorage 缓存
     const cached = loadFromCache();
-    if (cached) Object.assign(results, cached);
+    if (cached) {
+      Object.assign(results, cached);
+    } else {
+      // 完全无数据时使用兜底值
+      codes.forEach(code => { results[code] = { code, price: null }; });
+    }
   }
 
-  // 获取额外估值数据（PE分位等）
-  await Promise.all([
-    fetchNasdaqPE().then(d => { if (d) results['513100'] = {...results['513100'], ...d}; }),
-    fetchDividendPB().then(d => { if (d) results['512890'] = {...results['512890'], ...d}; }),
-    fetchGoldData().then(d => { if (d) results['518880'] = {...results['518880'], ...d}; })
-  ]);
-
-  // 确保每个资产有基本结构
-  codes.forEach(code => {
-    if (!results[code]) results[code] = { code, price: null };
-    else results[code].code = code;
-  });
-
-  // 纳指高点追踪与回撤计算（用于手动加仓信号）
+  // 纳指高点追踪
   trackNasdaqHigh(results);
 
   assetData = results;
   saveToCache(results);
-  document.getElementById('updateTime').textContent = '最后更新：' + new Date().toLocaleTimeString('zh-CN');
   updateAllUI();
 }
 
-// ===== JSONP 工具函数 — 绕过 CORS 限制 =====
-function jsonp(url, timeoutMs = 8000) {
-  return new Promise((resolve, reject) => {
-    const callbackName = 'jsonp_cb_' + Math.random().toString(36).substr(2, 9);
-    const script = document.createElement('script');
-    const timer = setTimeout(() => {
-      cleanup();
-      reject(new Error('JSONP timeout'));
-    }, timeoutMs);
-
-    function cleanup() {
-      clearTimeout(timer);
-      if (script.parentNode) script.parentNode.removeChild(script);
-      delete window[callbackName];
-    }
-
-    window[callbackName] = function(data) {
-      cleanup();
-      resolve(data);
-    };
-
-    script.src = url + (url.includes('?') ? '&' : '?') + 'cb=' + callbackName;
-    script.onerror = () => { cleanup(); reject(new Error('JSONP load error')); };
-    document.head.appendChild(script);
-  });
-}
-
-// 获取单只ETF实时行情（东方财富API — JSONP方式绕过CORS）
-async function fetchETFQuote(code) {
-  const asset = CONFIG.assets.find(a => a.code === code);
-  if (!asset) return null;
-
-  const secid = asset.eastmoneySecId;
-  const fields = 'f43,f44,f45,f46,f47,f48,f50,f51,f52,f55,f57,f58,f60,f116,f117,f162,f167,f168,f169,f170,f171';
-  const url = `${CONFIG.apis.eastmoneyQuote}?secid=${secid}&fields=${fields}&ut=fa5fd1943c7b386f172d6893dbfdc4f1`;
-
-  try {
-    const json = await jsonp(url, 8000);
-    if (!json || !json.data) return null;
-    const d = json.data;
-    return {
-      name: asset.name,
-      price: d.f43 ? d.f43 / 1000 : null,       // 最新价（元）
-      high: d.f44 ? d.f44 / 1000 : null,         // 最高
-      low: d.f45 ? d.f45 / 1000 : null,          // 最低
-      open: d.f46 ? d.f46 / 1000 : null,         // 开盘
-      prevClose: d.f60 ? d.f60 / 1000 : null,    // 昨收
-      change: d.f169 ? d.f169 / 1000 : null,     // 涨跌额
-      changePct: d.f170 ? d.f170 / 100 : null,   // 涨跌幅%
-      volume: d.f47,                              // 成交量
-      amount: d.f48,                              // 成交额
-      pe: d.f162 ? d.f162 / 100 : null,           // PE-TTM
-      pb: d.f167 ? d.f167 / 100 : null,           // PB
-      marketCap: d.f116,                          // 总市值
-    };
-  } catch(e) {
-    console.warn(`获取 ${code} 行情失败:`, e.message);
-    return null;
-  }
-}
-
-// 获取纳指PE和分位数据（东方财富全球指数 — JSONP）
-async function fetchNasdaqPE() {
-  try {
-    const json = await jsonp(
-      'https://push2.eastmoney.com/api/qt/stock/get?secid=100.NDX&fields=f43,f44,f45,f46,f48,f50,f51,f52,f55,f57,f58,f60,f116,f117,f162,f167,f168,f169,f170,f171',
-      8000
-    );
-    if (json && json.data) {
-      const d = json.data;
-      return {
-        nasdaqPrice: d.f43 ? d.f43 / 100 : null,
-        nasdaqPE: d.f162 ? d.f162 / 100 : null,
-      };
-    }
-  } catch(e) { console.warn('纳指PE获取失败:', e.message); }
-
-  // 兜底：估算数据（首次占位，刷新后覆盖）
-  return { nasdaqPE: 32.5, nasdaqPercentile: 55 };
-}
-
-// 获取红利低波PB分位和股息率（东方财富 — JSONP）
-async function fetchDividendPB() {
-  try {
-    const json = await jsonp(
-      'https://push2.eastmoney.com/api/qt/stock/get?secid=1.512890&fields=f43,f162,f167,f168,f169,f170,f171',
-      8000
-    );
-    if (json && json.data) {
-      const d = json.data;
-      return { pb: d.f167 ? d.f167 / 100 : null, pe: d.f162 ? d.f162 / 100 : null };
-    }
-  } catch(e) { console.warn('红利低波数据获取失败:', e.message); }
-  return {};
-}
-
-// 获取黄金数据（Gold API — fetch方式，该API支持CORS）
-async function fetchGoldData() {
-  try {
-    const resp = await fetch('https://api.gold-api.com/price/XAU', { signal: AbortSignal.timeout(8000) });
-    const json = await resp.json();
-    if (json && json.price) {
-      return { goldPriceUSD: json.price, goldPriceCNY: json.price * 7.25 };
-    }
-  } catch(e) { console.warn('黄金价格获取失败:', e.message); }
-  return {};
-}
+// ===== 数据来源说明 =====
+// ETF价格从 data.json 读取（GitHub Actions 每30分钟通过 update_realtime.py 更新）
+// 该文件通过腾讯财经API获取并提交到仓库，前端同源读取，零CORS问题
 
 // 纳指高点追踪 — 记录52周高点用于计算回撤
 function trackNasdaqHigh(results) {
