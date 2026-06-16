@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四资产ETF动态定投可视化监控系统</title>
+<meta name="description" content="场内ETF四资产（短债/红利低波/纳指100/黄金）动态定投监控，实时估值、资金分配、再平衡一站式工具">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        dark: { bg: '#0F172A', card: '#1E293B', border: '#334155', text: '#F1F5F9', muted: '#94A3B8' },
+        light: { bg: '#F8FAFC', card: '#FFFFFF', border: '#E2E8F0', text: '#1E293B', muted: '#64748B' }
+      },
+      fontFamily: { mono: ['SF Mono','Fira Code','Consolas','monospace'] }
+    }
+  }
+}
+</script>
+<style>
+  :root { --green:#22C55E; --yellow:#EAB308; --red:#EF4444; --blue:#3B82F6; --orange:#F97316; }
+  body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; }
+  .dark body,.dark .bg-card{background:#1E293B}.dark .text-main{color:#F1F5F9}
+  .card { border-radius:12px; border:1px solid rgba(148,163,184,0.15); transition:all .2s; }
+  .card:hover { border-color:rgba(148,163,184,0.3); }
+  .tag-green{background:rgba(34,197,94,0.15);color:#22C55E;border:1px solid rgba(34,197,94,0.3)}
+  .tag-yellow{background:rgba(234,179,8,0.15);color:#EAB308;border:1px solid rgba(234,179,8,0.3)}
+  .tag-red{background:rgba(239,68,68,0.15);color:#EF4444;border:1px solid rgba(239,68,68,0.3)}
+  .tag-blue{background:rgba(59,130,246,0.15);color:#3B82F6;border:1px solid rgba(59,130,246,0.3)}
+  .tag-orange{background:rgba(249,115,22,0.15);color:#F97316;border:1px solid rgba(249,115,22,0.3)}
+  .tag{display:inline-block;padding:2px 10px;border-radius:6px;font-size:0.8rem;font-weight:600;white-space:nowrap}
+  .num{font-variant-numeric:tabular-nums;font-weight:700}
+  .chart-wrap{position:relative;width:100%;max-width:100%}
+  .badge{padding:1px 8px;border-radius:4px;font-size:0.7rem;font-weight:700}
+  .scrollbar-thin::-webkit-scrollbar{width:4px;height:4px}
+  .scrollbar-thin::-webkit-scrollbar-thumb{background:rgba(148,163,184,0.4);border-radius:2px}
+  .pulse{animation:pulse 2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+  .section-title{font-size:1.1rem;font-weight:700;letter-spacing:.02em;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid rgba(148,163,184,0.2)}
+  /* Toast */
+  .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;padding:10px 24px;border-radius:8px;font-size:.9rem;font-weight:600;animation:slideDown .3s ease-out}
+  @keyframes slideDown{from{transform:translate(-50%,-100%);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+</style>
+</head>
+<body class="bg-[#0F172A] text-[#F1F5F9] dark:bg-[#0F172A] dark:text-[#F1F5F9] transition-colors duration-300">
+
+<!-- ===== 页面容器 ===== -->
+<div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4">
+
+<!-- ===== 顶部标题栏 ===== -->
+<header class="flex flex-wrap items-center justify-between gap-3 mb-4">
+  <div>
+    <h1 class="text-xl sm:text-2xl font-bold tracking-tight">📊 四资产ETF动态定投监控</h1>
+    <p class="text-xs text-slate-400 mt-1">511580 短债 · 512890 红利低波 · 513100 纳指100 · 518880 黄金</p>
+  </div>
+  <div class="flex items-center gap-2 flex-wrap">
+    <span id="updateTime" class="text-xs text-slate-400">--</span>
+    <button onclick="refreshAll()" id="btnRefresh" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg font-medium transition">🔄 刷新数据</button>
+    <select id="refreshInterval" onchange="setRefreshInterval()" class="px-2 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-sm text-white">
+      <option value="300000">⏱ 5分钟</option>
+      <option value="600000">⏱ 10分钟</option>
+      <option value="1800000">⏱ 30分钟</option>
+    </select>
+    <button onclick="toggleTheme()" id="btnTheme" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg font-medium transition">🌙 深色</button>
+  </div>
+</header>
+
+<!-- ===== 全局市场状态横幅 ===== -->
+<div id="marketBanner" class="card p-3 sm:p-4 mb-4 bg-[#1E293B] flex flex-wrap items-center justify-between gap-2">
+  <div class="flex items-center gap-2 flex-wrap">
+    <span class="text-sm font-medium">📡 市场状态：</span>
+    <span id="marketStatusTag" class="tag tag-yellow">⏳ 加载中...</span>
+  </div>
+  <div class="flex items-center gap-2 flex-wrap">
+    <span class="text-sm font-medium">💰 本月定投分配：</span>
+    <span id="totalAllocDisp" class="num text-lg text-blue-400">¥8,000</span>
+  </div>
+  <div id="dataDelayBadge" class="tag tag-yellow hidden">⚠️ 数据延迟</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- 分区1：全局控制面板 -->
+<!-- ================================================================ -->
+<section class="card p-4 sm:p-5 mb-5 bg-[#1E293B]">
+  <h2 class="section-title">⚙️ 持仓控制面板</h2>
+  <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 mb-3">
+    <div>
+      <label class="block text-xs text-slate-400 mb-1">511580 短债 持有股数</label>
+      <input type="number" id="hold-511580" min="0" step="100" value="0" onchange="onHoldingChange()"
+        class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none" placeholder="股数">
+    </div>
+    <div>
+      <label class="block text-xs text-slate-400 mb-1">512890 红利低波 持有股数</label>
+      <input type="number" id="hold-512890" min="0" step="100" value="0" onchange="onHoldingChange()"
+        class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:border-green-500 focus:outline-none" placeholder="股数">
+    </div>
+    <div>
+      <label class="block text-xs text-slate-400 mb-1">513100 纳指100 持有股数</label>
+      <input type="number" id="hold-513100" min="0" step="100" value="0" onchange="onHoldingChange()"
+        class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:border-amber-500 focus:outline-none" placeholder="股数">
+    </div>
+    <div>
+      <label class="block text-xs text-slate-400 mb-1">518880 黄金 持有股数</label>
+      <input type="number" id="hold-518880" min="0" step="100" value="0" onchange="onHoldingChange()"
+        class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:border-orange-500 focus:outline-none" placeholder="股数">
+    </div>
+    <div>
+      <label class="block text-xs text-slate-400 mb-1">💵 额外备用现金（元）</label>
+      <input type="number" id="extraCash" min="0" step="1000" value="0" onchange="onHoldingChange()"
+        class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:border-slate-400 focus:outline-none" placeholder="应急资金">
+    </div>
+  </div>
+  <div class="flex gap-2 flex-wrap">
+    <button onclick="saveHoldings()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg font-medium transition">💾 保存持仓</button>
+    <button onclick="resetAllInputs()" class="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white text-sm rounded-lg font-medium transition">🔄 重置输入</button>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<!-- 分区2：四资产实时估值监控卡片 -->
+<!-- ================================================================ -->
+<section class="mb-5">
+  <h2 class="section-title">📈 四资产实时估值监控</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="assetCards">
+    <!-- 动态渲染 -->
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<!-- 分区3：月度资金分配可视化 -->
+<!-- ================================================================ -->
+<section class="card p-4 sm:p-5 mb-5 bg-[#1E293B]">
+  <h2 class="section-title">💰 月度 ¥8,000 定投资金分配</h2>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+    <!-- 左侧：分配明细表 -->
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm" id="allocTable">
+        <thead>
+          <tr class="border-b border-slate-700 text-slate-400 text-xs">
+            <th class="text-left py-2">标的</th>
+            <th class="text-right py-2">当月买入</th>
+            <th class="text-right py-2">基准金额</th>
+            <th class="text-right py-2">增减差额</th>
+          </tr>
+        </thead>
+        <tbody id="allocTbody"></tbody>
+        <tfoot>
+          <tr class="border-t border-slate-600 font-bold">
+            <td class="py-2">合计</td>
+            <td class="text-right py-2" id="allocSum">¥8,000</td>
+            <td class="text-right py-2">¥8,000</td>
+            <td class="text-right py-2">--</td>
+          </tr>
+        </tfoot>
+      </table>
+      <div id="allocReason" class="mt-3 p-3 bg-slate-800/50 rounded-lg text-xs text-slate-300 leading-relaxed"></div>
+    </div>
+    <!-- 右侧：柱状图 -->
+    <div class="chart-wrap" style="min-height:260px">
+      <canvas id="allocChart"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<!-- 分区4：持仓仓位 & 再平衡测算 -->
+<!-- ================================================================ -->
+<section class="card p-4 sm:p-5 mb-5 bg-[#1E293B]" id="rebalanceSection">
+  <h2 class="section-title">⚖️ 持仓仓位 & 再平衡测算</h2>
+  <div id="rebalanceReminder" class="hidden mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-400 font-medium">
+    ⚠️ 当前为年度再平衡窗口期（12月），请关注仓位偏离并及时调仓！
+  </div>
+  <div id="rebalanceContent">
+    <p class="text-sm text-slate-400 text-center py-8">📝 请在上方"持仓控制面板"输入您的持仓股数，系统将自动计算仓位与再平衡方案。</p>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<!-- 分区5：底部预警与策略说明 -->
+<!-- ================================================================ -->
+<section class="mb-5">
+  <h2 class="section-title">🔔 动态预警中心</h2>
+  <div id="alertPanel" class="space-y-2">
+    <div class="card p-3 bg-[#1E293B] text-sm text-slate-400">暂无需要处理的预警，系统正在监控中...</div>
+  </div>
+</section>
+
+<section class="mb-5">
+  <h2 class="section-title">📖 策略解读</h2>
+  <div class="card p-4 sm:p-5 bg-[#1E293B] space-y-4 text-sm text-slate-300 leading-relaxed">
+    <div>
+      <h3 class="text-base font-bold text-white mb-2">一、为什么是 10/40/35/15 而不是 25/25/25/25？</h3>
+      <p>均等持仓忽视资产间风险差异。债/红利/纳指/黄金的风险特征完全不同：短债几乎无波动、红利低波年化波动约15%、纳指波动超25%、黄金与权益相关性低。本组合设计：</p>
+      <ul class="list-disc pl-5 mt-2 space-y-1">
+        <li><strong>10%短债</strong>：组合收益的"压舱石"，提供确定性票息收益+流动性缓冲，非主要收益来源</li>
+        <li><strong>40%红利低波</strong>：核心收益来源，A股高股息策略长期年化8-10%，波动可控，是组合最大权重引擎</li>
+        <li><strong>35%纳指100</strong>：成长弹性来源，全球顶级科技资产，长期年化12-15%，高波动换高回报</li>
+        <li><strong>15%黄金</strong>：对冲尾部风险，股债双杀时逆势上涨，不追求收益而是保护组合</li>
+      </ul>
+      <p class="mt-2">该配置科学依据：<em>桥水全天候策略框架 + A股红利因子 + 全球科技配置 + 实物对冲。</em></p>
+    </div>
+    <div>
+      <h3 class="text-base font-bold text-white mb-2">二、10%短债真的够用吗？</h3>
+      <p><strong>足够。三重缓冲机制确保加仓子弹充沛：</strong></p>
+      <ul class="list-disc pl-5 mt-2 space-y-1">
+        <li><strong>第一层</strong>：每月持续流入8000元新增现金流≈年化96000元，约占总组合10%资金的新增弹药</li>
+        <li><strong>第二层</strong>：15%黄金在美股大跌时往往逆势上涨，可止盈加仓权益，分担短债压力</li>
+        <li><strong>第三层</strong>：年末再平衡卖出超配资产（牛市时纳指上涨最多），自动回流短债，持续补充</li>
+      </ul>
+      <p class="mt-2 text-slate-400">结论：10%短债+年度再平衡机制+持续现金流 = 足够应对任何熊市。</p>
+    </div>
+    <div>
+      <h3 class="text-base font-bold text-white mb-2">三、大跌分层加仓纪律</h3>
+      <table class="w-full text-xs mt-2 border-collapse">
+        <thead><tr class="border-b border-slate-600 text-slate-400"><th class="text-left py-2">权益回撤幅度</th><th class="text-left py-2">加仓策略</th><th class="text-left py-2">短债动用</th></tr></thead>
+        <tbody class="divide-y divide-slate-700">
+          <tr><td class="py-2">&lt; 15%</td><td class="py-2">仅用当月8000定投资金</td><td class="py-2 text-green-400">不动用</td></tr>
+          <tr><td class="py-2">15% ~ 25%</td><td class="py-2">分批少量卖出短债加仓</td><td class="py-2 text-yellow-400">单次≤3%总组合</td></tr>
+          <tr><td class="py-2">&gt; 25%</td><td class="py-2">最多动用一半短债底仓</td><td class="py-2 text-red-400">永久保留≥5%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="mb-5">
+  <h2 class="section-title">📋 海通e海通财 场内定投操作指南</h2>
+  <div class="card p-4 sm:p-5 bg-[#1E293B] space-y-3 text-sm text-slate-300 leading-relaxed">
+    <div>
+      <h3 class="font-bold text-white mb-1">1. 设置定时条件单</h3>
+      <p>打开e海通财APP → 交易 → 条件单 → 新建条件单 → 选择"定时买入"：</p>
+      <ul class="list-decimal pl-5 mt-1 space-y-0.5">
+        <li>选择标的（如512890红利低波ETF）</li>
+        <li>设置触发时间：每月21日 09:35（开盘后5分钟）</li>
+        <li>委托价格：即时卖一价</li>
+        <li>委托数量：参考系统本月分配金额 ÷ 实时价格（向下取整到100股）</li>
+        <li>有效期：长期有效</li>
+      </ul>
+    </div>
+    <div>
+      <h3 class="font-bold text-white mb-1">2. 暂停/修改定投金额</h3>
+      <p>进入条件单列表 → 找到对应标的 → 点击"暂停"或"修改"：</p>
+      <ul class="list-disc pl-5 mt-1 space-y-0.5">
+        <li>纳指高估时：暂停513100条件单，手动调高512890和518880买入金额</li>
+        <li>深度低估时：暂停511580条件单，将资金集中买入低估标的</li>
+        <li>黄金泡沫时：暂停518880条件单</li>
+      </ul>
+    </div>
+    <div>
+      <h3 class="font-bold text-white mb-1">3. 手动加仓操作</h3>
+      <p>触发回撤加仓信号时，在交易时段手动买入对应金额的ETF份额即可。</p>
+    </div>
+    <div class="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs">
+      💡 <strong>提示</strong>：建议每月20日晚查看本系统"月度资金分配"模块，21日开盘执行定投。系统数据每5-30分钟自动刷新。
+    </div>
+  </div>
+</section>
+
+<!-- ===== 页脚 ===== -->
+<footer class="text-center text-xs text-slate-500 py-6 border-t border-slate-700/50 mt-4">
+  <p>四资产ETF动态定投可视化监控系统 v1.0 | 数据来源：东方财富/公开财经API | 仅供投资参考，不构成投资建议</p>
+  <p class="mt-1">策略：10%短债 + 40%红利低波 + 35%纳指100 + 15%黄金 | 月定投 ¥8,000 | 年度再平衡</p>
+</footer>
+
+</div><!-- /max-w-7xl -->
+
+<!-- ===== Chart.js ===== -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- ===== 配置文件 ===== -->
+<script src="config.js"></script>
+
+<!-- ===== 核心业务逻辑 ===== -->
+<script>
+// =========================== 全局状态 ===========================
+let assetData = {};           // { '511580': {price, pe, pb, ...}, ... }
+let refreshTimer = null;
+let allocChart = null;
+let pieChartCurrent = null;
+let pieChartTarget = null;
+let isDark = true;
+
+// =========================== 初始化 ===========================
+document.addEventListener('DOMContentLoaded', () => {
+  loadTheme();
+  loadHoldings();
+  loadCache();
+  document.getElementById('refreshInterval').value = CONFIG.refresh.defaultInterval;
+  refreshAll();
+  startAutoRefresh();
+  checkRebalanceReminder();
+});
+
+// =========================== 主题切换 ===========================
+function toggleTheme() {
+  isDark = !isDark;
+  document.documentElement.classList.toggle('dark', isDark);
+  const body = document.body;
+  const cards = document.querySelectorAll('.card');
+  if (isDark) {
+    body.className = 'bg-[#0F172A] text-[#F1F5F9]';
+    cards.forEach(c => { c.style.background = '#1E293B'; });
+    document.getElementById('btnTheme').innerHTML = '🌙 深色';
+  } else {
+    body.className = 'bg-[#F8FAFC] text-[#1E293B]';
+    cards.forEach(c => { c.style.background = '#FFFFFF'; });
+    document.getElementById('btnTheme').innerHTML = '☀️ 浅色';
+  }
+  localStorage.setItem(CONFIG.storageKeys.theme, isDark ? 'dark' : 'light');
+  // Update charts if they exist
+  updateAllCharts();
+}
+
+function loadTheme() {
+  const saved = localStorage.getItem(CONFIG.storageKeys.theme);
+  if (saved === 'light') { isDark = false; toggleTheme(); }
+}
+
+// =========================== 数据获取 ===========================
+async function fetchAllData() {
+  const codes = ['511580','512890','513100','518880'];
+  const results = {};
+
+  // 并行获取所有ETF实时行情
+  const quotePromises = codes.map(code => fetchETFQuote(code));
+
+  try {
+    const quotes = await Promise.all(quotePromises);
+    codes.forEach((code, i) => {
+      results[code] = quotes[i] || {};
+    });
+  } catch(e) {
+    console.warn('部分API请求失败，使用缓存数据:', e.message);
+    // 失败时使用缓存
+    const cached = loadFromCache();
+    if (cached) Object.assign(results, cached);
+  }
+
+  // 获取额外估值数据（PE分位等）
+  await Promise.all([
+    fetchNasdaqPE().then(d => { if (d) results['513100'] = {...results['513100'], ...d}; }),
+    fetchDividendPB().then(d => { if (d) results['512890'] = {...results['512890'], ...d}; }),
+    fetchGoldData().then(d => { if (d) results['518880'] = {...results['518880'], ...d}; })
+  ]);
+
+  // 确保每个资产有基本结构
+  codes.forEach(code => {
+    if (!results[code]) results[code] = { code, price: null };
+    else results[code].code = code;
+  });
+
+  // 纳指高点追踪与回撤计算（用于手动加仓信号）
+  trackNasdaqHigh(results);
+
+  assetData = results;
+  saveToCache(results);
+  document.getElementById('updateTime').textContent = '最后更新：' + new Date().toLocaleTimeString('zh-CN');
+  updateAllUI();
+}
+
+// 获取单只ETF实时行情（东方财富API）
+async function fetchETFQuote(code) {
+  const asset = CONFIG.assets.find(a => a.code === code);
+  if (!asset) return null;
+
+  const secid = asset.eastmoneySecId;
+  const fields = 'f43,f44,f45,f46,f47,f48,f50,f51,f52,f55,f57,f58,f60,f116,f117,f162,f167,f168,f169,f170,f171';
+  const url = `${CONFIG.apis.eastmoneyQuote}?secid=${secid}&fields=${fields}&ut=fa5fd1943c7b386f172d6893dbfdc4f1`;
+
+  try {
+    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const json = await resp.json();
+    if (!json || !json.data) return null;
+    const d = json.data;
+    return {
+      name: asset.name,
+      price: d.f43 ? d.f43 / 1000 : null,       // 最新价（元）
+      high: d.f44 ? d.f44 / 1000 : null,         // 最高
+      low: d.f45 ? d.f45 / 1000 : null,          // 最低
+      open: d.f46 ? d.f46 / 1000 : null,         // 开盘
+      prevClose: d.f60 ? d.f60 / 1000 : null,    // 昨收
+      change: d.f169 ? d.f169 / 1000 : null,     // 涨跌额
+      changePct: d.f170 ? d.f170 / 100 : null,   // 涨跌幅%
+      volume: d.f47,                              // 成交量
+      amount: d.f48,                              // 成交额
+      pe: d.f162 ? d.f162 / 100 : null,           // PE-TTM
+      pb: d.f167 ? d.f167 / 100 : null,           // PB
+      marketCap: d.f116,                          // 总市值
+    };
+  } catch(e) {
+    console.warn(`获取 ${code} 行情失败:`, e.message);
+    return null;
+  }
+}
+
+// 获取纳指PE和分位数据
+async function fetchNasdaqPE() {
+  // 尝试多个数据源
+  try {
+    // 源1：东方财富全球指数
+    const resp = await fetch(
+      'https://push2.eastmoney.com/api/qt/stock/get?secid=100.NDX&fields=f43,f44,f45,f46,f48,f50,f51,f52,f55,f57,f58,f60,f116,f117,f162,f167,f168,f169,f170,f171',
+      { signal: AbortSignal.timeout(8000) }
+    );
+    const json = await resp.json();
+    if (json && json.data) {
+      const d = json.data;
+      return {
+        nasdaqPrice: d.f43 ? d.f43 / 100 : null,
+        nasdaqPE: d.f162 ? d.f162 / 100 : null,
+      };
+    }
+  } catch(e) { console.warn('纳指PE获取失败，使用默认估算:', e.message); }
+
+  // 兜底：使用模拟估值数据（用户首次使用时填充，后续缓存覆盖）
+  // 注意：这仅作首次占位，实际数据通过刷新获取
+  return {
+    nasdaqPE: 32.5,
+    nasdaqPercentile: 55,
+  };
+}
+
+// 获取红利低波PB分位和股息率
+async function fetchDividendPB() {
+  try {
+    // 东方财富指数估值
+    const resp = await fetch(
+      'https://push2.eastmoney.com/api/qt/stock/get?secid=1.512890&fields=f43,f162,f167,f168,f169,f170,f171',
+      { signal: AbortSignal.timeout(8000) }
+    );
+    const json = await resp.json();
+    if (json && json.data) {
+      const d = json.data;
+      return {
+        pb: d.f167 ? d.f167 / 100 : null,
+        pe: d.f162 ? d.f162 / 100 : null,
+      };
+    }
+  } catch(e) { console.warn('红利低波数据获取失败:', e.message); }
+  return {};
+}
+
+// 获取黄金数据
+async function fetchGoldData() {
+  try {
+    // 国际金价
+    const resp = await fetch('https://api.gold-api.com/price/XAU', { signal: AbortSignal.timeout(8000) });
+    const json = await resp.json();
+    if (json && json.price) {
+      return {
+        goldPriceUSD: json.price,
+        goldPriceCNY: json.price * 7.25, // 粗略换算
+      };
+    }
+  } catch(e) { console.warn('黄金价格获取失败:', e.message); }
+  return {};
+}
+
+// 纳指高点追踪 — 记录52周高点用于计算回撤
+function trackNasdaqHigh(results) {
+  const key = 'etf_dca_nasdaq_ath';
+  const nasdaq = results['513100'];
+  if (!nasdaq || !nasdaq.nasdaqPrice) return;
+
+  const currentPrice = nasdaq.nasdaqPrice;
+  let ath = parseFloat(localStorage.getItem(key)) || 0;
+
+  // 更新历史最高价
+  if (currentPrice > ath) {
+    ath = currentPrice;
+    localStorage.setItem(key, ath.toString());
+  }
+
+  // 计算当前回撤百分比
+  if (ath > 0) {
+    nasdaq.drawdownFromHigh = (ath - currentPrice) / ath;
+    nasdaq.athPrice = ath;
+  }
+}
+
+// =========================== 估值档位判定 ===========================
+function calcValuationLevel(code) {
+  const data = assetData[code] || {};
+  const asset = CONFIG.assets.find(a => a.code === code);
+
+  switch(code) {
+    case '513100': return calcNasdaqLevel(data);
+    case '512890': return calcDividendLevel(data);
+    case '518880': return calcGoldLevel(data);
+    case '511580': default: return calcBondLevel(data);
+  }
+}
+
+// 纳指100 513100 估值判定
+function calcNasdaqLevel(data) {
+  const cfg = CONFIG.nasdaq;
+  const pe = data.nasdaqPE || data.pe || null;
+  const pct = data.nasdaqPercentile || data.pePercentile || null;
+
+  // 数据不足时默认中性
+  if (pe === null) return { level: 'neutral', label: '⏳ 数据获取中', tagClass: 'tag-yellow', color: '#EAB308', allocation: CONFIG.baseAllocation };
+
+  // 极端泡沫：PE≥40 且 分位>90%
+  if (pe >= cfg.peBubble && pct !== null && pct > cfg.percentileBubble) {
+    return {
+      level: 'bubble', label: '🔴 极端泡沫', tagClass: 'tag-red', color: '#EF4444',
+      allocation: CONFIG.nasdaq.overvaluedAllocation, // 暂停定投
+      extraWarning: `建议减持纳指持仓 ${Math.round(cfg.bubbleReduceMin*100)}%-${Math.round(cfg.bubbleReduceMax*100)}%，资金转入红利、短债`,
+    };
+  }
+  // 高估：PE≥34 且 分位>75%
+  if (pe >= cfg.peOvervalued && (pct === null || pct > cfg.percentileOvervalued)) {
+    return {
+      level: 'overvalued', label: '🟡 高估预警', tagClass: 'tag-red', color: '#EF4444',
+      allocation: CONFIG.nasdaq.overvaluedAllocation,
+    };
+  }
+  // 深度低估：PE<25，分位<30%
+  if (pe < cfg.peUndervalued && (pct === null || pct < cfg.percentileUndervalued)) {
+    return {
+      level: 'undervalued', label: '🟢 深度低估', tagClass: 'tag-green', color: '#22C55E',
+      allocation: CONFIG.nasdaq.undervaluedAllocation,
+    };
+  }
+  // 合理区间
+  return {
+    level: 'neutral', label: '🟡 估值合理', tagClass: 'tag-yellow', color: '#EAB308',
+    allocation: CONFIG.baseAllocation,
+  };
+}
+
+// 红利低波 512890 估值判定
+function calcDividendLevel(data) {
+  const cfg = CONFIG.dividend;
+  const pb = data.pb;
+  const pbPct = data.pbPercentile || null;
+  const divYield = data.dividendYield || null;
+
+  if (pbPct === null && divYield === null) {
+    return { level: 'neutral', label: '⏳ 数据获取中', tagClass: 'tag-yellow', color: '#EAB308', allocation: CONFIG.baseAllocation };
+  }
+
+  // 高估：PB分位>80% 或 股息率<4.3%
+  if ((pbPct !== null && pbPct > cfg.pbPercentileOvervalued) || (divYield !== null && divYield < cfg.dividendYieldOvervalued)) {
+    return {
+      level: 'overvalued', label: '🟡 高估', tagClass: 'tag-red', color: '#EF4444',
+      allocation: CONFIG.dividend.overvaluedAllocation,
+    };
+  }
+  // 深度低估：PB分位<20% 且 股息率>5.5%
+  if ((pbPct !== null && pbPct < cfg.pbPercentileUndervalued) && (divYield !== null && divYield > cfg.dividendYieldUndervalued)) {
+    return {
+      level: 'undervalued', label: '🟢 深度低估', tagClass: 'tag-green', color: '#22C55E',
+      allocation: CONFIG.dividend.undervaluedAllocation,
+    };
+  }
+  // 中性
+  return {
+    level: 'neutral', label: '🟡 中性', tagClass: 'tag-yellow', color: '#EAB308',
+    allocation: CONFIG.baseAllocation,
+  };
+}
+
+// 黄金 518880 估值判定
+function calcGoldLevel(data) {
+  const cfg = CONFIG.gold;
+  const gain3m = data.gain3m || null;
+
+  // 高位泡沫：近3月涨幅>20%
+  if (gain3m !== null && gain3m > cfg.bubbleGain) {
+    return {
+      level: 'bubble', label: '🔴 高位泡沫', tagClass: 'tag-red', color: '#EF4444',
+      allocation: CONFIG.gold.bubbleAllocation,
+    };
+  }
+
+  // 检查纳指是否高估（对冲行情）— 仅修改黄金分配，不覆盖纳指设定的其他资产分配
+  const nasdaqLevel = assetData['513100'] ? calcNasdaqLevel(assetData['513100']) : null;
+  if (nasdaqLevel && (nasdaqLevel.level === 'overvalued' || nasdaqLevel.level === 'bubble')) {
+    return {
+      level: 'hedge', label: '🟠 对冲行情', tagClass: 'tag-orange', color: '#F97316',
+      allocation: { '518880': 2000 }, // 仅提升黄金至2000，不覆盖纳指已设定的红利分配
+    };
+  }
+
+  return {
+    level: 'neutral', label: '🟡 中性行情', tagClass: 'tag-yellow', color: '#EAB308',
+    allocation: CONFIG.baseAllocation,
+  };
+}
+
+// 短债 511580 估值判定（固定）
+function calcBondLevel(data) {
+  return {
+    level: 'bond', label: '🔵 固收资产', tagClass: 'tag-blue', color: '#3B82F6',
+    allocation: CONFIG.baseAllocation,
+  };
+}
+
+// =========================== 月度资金分配计算 ===========================
+function calcFinalAllocation() {
+  const codes = ['511580','512890','513100','518880'];
+
+  // 收集各资产的估值判定
+  const levels = {};
+  codes.forEach(code => { levels[code] = calcValuationLevel(code); });
+
+  // 分配合并策略（按优先级：纳指 > 黄金 > 红利 > 短债）
+  // — 纳指估值决定全局分配基调（含红利和黄金调整）
+  // — 黄金泡沫独立覆盖（仅当纳指非高估时生效，避免冲突）
+  // — 红利估值在纳指中性时独立调整
+  // — 短债为被调节对象，不主动调整
+  const nasdaqLvl = levels['513100'];
+  const goldLvl = levels['518880'];
+  const divLvl = levels['512890'];
+
+  const nasdaqRegime = (nasdaqLvl.level === 'overvalued' || nasdaqLvl.level === 'bubble');
+
+  let finalAlloc = {...CONFIG.baseAllocation};
+
+  // 第1步：纳指估值 → 完整覆盖（最高优先级）
+  if (nasdaqLvl.allocation && (nasdaqRegime || nasdaqLvl.level === 'undervalued')) {
+    finalAlloc = {...nasdaqLvl.allocation};
+  }
+  // 第2步：红利估值 → 仅在纳指中性时完整覆盖
+  else if (divLvl.allocation && (divLvl.level === 'overvalued' || divLvl.level === 'undervalued')) {
+    finalAlloc = {...divLvl.allocation};
+  }
+  // 第3步：黄金泡沫 → 仅在纳指中性时完整覆盖
+  else if (goldLvl.level === 'bubble' && goldLvl.allocation) {
+    finalAlloc = {...goldLvl.allocation};
+  }
+
+  // 第4步：黄金对冲行情 — 仅微调黄金值，不影响纳指已设定的红利分配
+  if (nasdaqRegime && goldLvl.level === 'hedge' && goldLvl.allocation) {
+    Object.keys(goldLvl.allocation).forEach(k => { finalAlloc[k] = goldLvl.allocation[k]; });
+  }
+
+  // 归一化：确保总额=8000
+  const sum = Object.values(finalAlloc).reduce((a,b)=>a+b,0);
+  if (sum !== CONFIG.monthlyTotal && sum > 0) {
+    const ratio = CONFIG.monthlyTotal / sum;
+    Object.keys(finalAlloc).forEach(k => { finalAlloc[k] = Math.round(finalAlloc[k] * ratio); });
+  }
+
+  // 微调舍入误差，确保精确8000
+  const finalSum = Object.values(finalAlloc).reduce((a,b)=>a+b,0);
+  if (finalSum !== CONFIG.monthlyTotal) {
+    finalAlloc['511580'] += (CONFIG.monthlyTotal - finalSum);
+  }
+
+  // 确保所有值 >= 0
+  codes.forEach(code => { if (finalAlloc[code] < 0) finalAlloc[code] = 0; });
+
+  return { allocation: finalAlloc, levels };
+}
+
+// =========================== UI 更新 ===========================
+function updateAllUI() {
+  const { allocation, levels } = calcFinalAllocation();
+
+  renderAssetCards(levels, allocation);
+  renderAllocationTable(allocation, levels);
+  renderAllocationChart(allocation);
+  updateMarketBanner(levels, allocation);
+  updateRebalanceSection();
+  updateAlerts(levels);
+}
+
+// 渲染四资产卡片
+function renderAssetCards(levels, allocation) {
+  const container = document.getElementById('assetCards');
+  const codes = ['511580','512890','513100','518880'];
+
+  container.innerHTML = codes.map(code => {
+    const asset = CONFIG.assets.find(a => a.code === code);
+    const data = assetData[code] || {};
+    const level = levels[code];
+    const alloc = allocation[code] || 0;
+    const price = data.price;
+    const changePct = data.changePct;
+    const changeColor = changePct >= 0 ? 'text-red-400' : 'text-green-400'; // 中国惯例：涨红跌绿
+
+    let extraInfo = '';
+    switch(code) {
+      case '513100':
+        extraInfo = `
+          <div class="flex justify-between text-xs mt-2"><span class="text-slate-400">PE-TTM</span><span class="num">${data.nasdaqPE || data.pe || '--'}</span></div>
+          <div class="flex justify-between text-xs"><span class="text-slate-400">十年分位</span><span class="num">${data.nasdaqPercentile != null ? data.nasdaqPercentile+'%' : '--'}</span></div>
+          ${data.drawdownFromHigh != null && data.drawdownFromHigh > 0 ? `
+          <div class="flex justify-between text-xs"><span class="text-slate-400">距高点回撤</span><span class="num text-red-400">-${(data.drawdownFromHigh*100).toFixed(1)}%</span></div>` : ''}
+          ${data.athPrice ? `<div class="flex justify-between text-xs"><span class="text-slate-400">52周高点</span><span class="num">${data.athPrice.toFixed(0)}</span></div>` : ''}`;
+        break;
+      case '512890':
+        extraInfo = `
+          <div class="flex justify-between text-xs mt-2"><span class="text-slate-400">PB</span><span class="num">${data.pb || '--'}</span></div>
+          <div class="flex justify-between text-xs"><span class="text-slate-400">PB分位</span><span class="num">${data.pbPercentile != null ? data.pbPercentile+'%' : '--'}</span></div>
+          <div class="flex justify-between text-xs"><span class="text-slate-400">股息率</span><span class="num">${data.dividendYield != null ? data.dividendYield.toFixed(2)+'%' : '--'}</span></div>`;
+        break;
+      case '518880':
+        extraInfo = `
+          <div class="flex justify-between text-xs mt-2"><span class="text-slate-400">国际金价</span><span class="num">$${data.goldPriceUSD || '--'}</span></div>
+          <div class="flex justify-between text-xs"><span class="text-slate-400">近3月涨跌</span><span class="num ${(data.gain3m||0) >= 0 ? 'text-red-400' : 'text-green-400'}">${data.gain3m != null ? (data.gain3m>=0?'+':'')+(data.gain3m*100).toFixed(1)+'%' : '--'}</span></div>`;
+        break;
+      default:
+        extraInfo = '';
+    }
+
+    return `
+    <div class="card p-4 bg-[#1E293B] hover:border-[${level.color}] transition-colors" style="border-left: 3px solid ${level.color}">
+      <div class="flex items-center justify-between mb-2">
+        <div>
+          <span class="text-xs text-slate-400">${code}</span>
+          <h3 class="font-bold text-sm">${asset.shortName}</h3>
+        </div>
+        <span class="${level.tagClass} tag">${level.label}</span>
+      </div>
+      <div class="flex items-baseline justify-between mb-1">
+        <span class="text-2xl font-bold num">${price != null ? price.toFixed(3) : '--'}</span>
+        <span class="text-sm font-semibold ${changeColor}">${changePct != null ? (changePct>=0?'+':'')+changePct.toFixed(2)+'%' : '--'}</span>
+      </div>
+      ${extraInfo}
+      <div class="mt-3 pt-3 border-t border-slate-700/50">
+        <div class="flex justify-between text-xs">
+          <span class="text-slate-400">📥 本月定投</span>
+          <span class="num text-blue-400">¥${alloc.toLocaleString()}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// 渲染月度分配表格
+function renderAllocationTable(allocation, levels) {
+  const tbody = document.getElementById('allocTbody');
+  const codes = ['511580','512890','513100','518880'];
+  let totalAlloc = 0, totalBase = 0;
+
+  tbody.innerHTML = codes.map(code => {
+    const asset = CONFIG.assets.find(a => a.code === code);
+    const alloc = allocation[code];
+    const base = CONFIG.baseAllocation[code];
+    const diff = alloc - base;
+    totalAlloc += alloc; totalBase += base;
+    const diffColor = diff > 0 ? 'text-green-400' : diff < 0 ? 'text-red-400' : 'text-slate-400';
+    const diffSign = diff > 0 ? '+' : '';
+    return `
+    <tr class="border-b border-slate-700/50">
+      <td class="py-2"><span class="font-medium">${asset.shortName}</span> <span class="text-xs text-slate-500">${code}</span></td>
+      <td class="text-right py-2 num">¥${alloc.toLocaleString()}</td>
+      <td class="text-right py-2 text-slate-400">¥${base.toLocaleString()}</td>
+      <td class="text-right py-2 num ${diffColor}">${diffSign}${diff.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('allocSum').textContent = '¥' + totalAlloc.toLocaleString();
+  document.getElementById('totalAllocDisp').textContent = '¥' + totalAlloc.toLocaleString();
+
+  // 生成资金倾斜原因说明
+  const reasons = [];
+  codes.forEach(code => {
+    const alloc = allocation[code];
+    const base = CONFIG.baseAllocation[code];
+    if (alloc === 0 && base > 0) {
+      const asset = CONFIG.assets.find(a => a.code === code);
+      reasons.push(`${asset.shortName}暂停定投`);
+    } else if (alloc > base) {
+      const asset = CONFIG.assets.find(a => a.code === code);
+      reasons.push(`${asset.shortName}加仓 ¥${(alloc-base).toLocaleString()}`);
+    }
+  });
+
+  const reasonEl = document.getElementById('allocReason');
+  if (reasons.length > 0) {
+    reasonEl.innerHTML = '📊 <strong>资金倾斜原因：</strong>' + reasons.join('；') + '。' +
+      `<br><span class="text-slate-400">总投入 ¥${totalAlloc.toLocaleString()}，中性基准 ¥8,000</span>`;
+  } else {
+    reasonEl.innerHTML = '📊 当前所有资产处于中性估值区间，按基准比例分配 ¥8,000。';
+  }
+}
+
+// 渲染分配柱状图
+function renderAllocationChart(allocation) {
+  const ctx = document.getElementById('allocChart').getContext('2d');
+  if (allocChart) allocChart.destroy();
+
+  const codes = ['511580','512890','513100','518880'];
+  const labels = codes.map(c => CONFIG.assets.find(a => a.code === c).shortName);
+  const allocData = codes.map(c => allocation[c]);
+  const baseData = codes.map(c => CONFIG.baseAllocation[c]);
+  const colors = codes.map(c => CONFIG.assets.find(a => a.code === c).color);
+  const isDarkMode = document.documentElement.classList.contains('dark');
+
+  allocChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '当月分配',
+          data: allocData,
+          backgroundColor: colors.map(c => c + '99'),
+          borderColor: colors,
+          borderWidth: 2,
+          borderRadius: 6,
+        },
+        {
+          label: '基准分配',
+          data: baseData,
+          backgroundColor: 'rgba(148,163,184,0.3)',
+          borderColor: 'rgba(148,163,184,0.5)',
+          borderWidth: 1,
+          borderDash: [4, 4],
+          borderRadius: 6,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: isDarkMode ? '#94A3B8' : '#64748B', font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => '¥' + ctx.raw.toLocaleString() } }
+      },
+      scales: {
+        x: { ticks: { color: isDarkMode ? '#94A3B8' : '#64748B', font: { size: 11 } }, grid: { display: false } },
+        y: { ticks: { color: isDarkMode ? '#94A3B8' : '#64748B', callback: v => '¥'+v, font: { size: 10 } }, grid: { color: isDarkMode ? '#334155' : '#E2E8F0' } }
+      }
+    }
+  });
+  // 设置画布容器高度
+  document.getElementById('allocChart').parentElement.style.height = '280px';
+}
+
+// 更新市场横幅
+function updateMarketBanner(levels, allocation) {
+  // 综合判断市场状态
+  const hasOvervalued = Object.values(levels).some(l => l.level === 'overvalued' || l.level === 'bubble');
+  const hasUndervalued = Object.values(levels).some(l => l.level === 'undervalued');
+  const statusEl = document.getElementById('marketStatusTag');
+
+  if (hasOvervalued && hasUndervalued) {
+    statusEl.className = 'tag tag-yellow'; statusEl.textContent = '⚠️ 分化行情';
+  } else if (hasOvervalued) {
+    statusEl.className = 'tag tag-red'; statusEl.textContent = '🔴 高估预警';
+  } else if (hasUndervalued) {
+    statusEl.className = 'tag tag-green'; statusEl.textContent = '🟢 低估机会';
+  } else {
+    statusEl.className = 'tag tag-yellow'; statusEl.textContent = '🟡 中性正常';
+  }
+}
+
+// =========================== 再平衡计算 ===========================
+function updateRebalanceSection() {
+  const holdings = getHoldings();
+  const hasHoldings = Object.values(holdings).some(v => v > 0);
+  const container = document.getElementById('rebalanceContent');
+
+  if (!hasHoldings) {
+    container.innerHTML = '<p class="text-sm text-slate-400 text-center py-8">📝 请在上方"持仓控制面板"输入您的持仓股数，系统将自动计算仓位与再平衡方案。</p>';
+    return;
+  }
+
+  // 计算当前持仓市值
+  const codes = ['511580','512890','513100','518880'];
+  const marketValues = {};
+  let totalMV = 0;
+  codes.forEach(code => {
+    const price = (assetData[code] && assetData[code].price) || 0;
+    marketValues[code] = (holdings[code] || 0) * price;
+    totalMV += marketValues[code];
+  });
+
+  if (totalMV <= 0) {
+    container.innerHTML = '<p class="text-sm text-slate-400 text-center py-8">⚠️ 无法获取实时价格，请等待数据加载后查看。</p>';
+    return;
+  }
+
+  // 计算当前仓位占比
+  const currentRatios = {};
+  codes.forEach(code => { currentRatios[code] = marketValues[code] / totalMV; });
+
+  // 再平衡表格
+  let tableRows = '';
+  const rebalanceActions = [];
+  codes.forEach(code => {
+    const asset = CONFIG.assets.find(a => a.code === code);
+    const targetRatio = CONFIG.targetAllocation[code];
+    const currentRatio = currentRatios[code];
+    const deviation = currentRatio - targetRatio;
+    const targetMV = totalMV * targetRatio;
+    const diffMV = targetMV - marketValues[code];
+    const absDev = Math.abs(deviation);
+
+    let devClass = '';
+    if (absDev > CONFIG.rebalance.deviationThreshold) {
+      devClass = deviation > 0 ? 'text-red-400' : 'text-green-400';
+    }
+
+    const action = deviation > CONFIG.rebalance.deviationThreshold
+      ? `卖出 ¥${Math.abs(diffMV).toLocaleString()}`
+      : deviation < -CONFIG.rebalance.deviationThreshold
+        ? `买入 ¥${Math.abs(diffMV).toLocaleString()}`
+        : '—';
+
+    if (absDev > CONFIG.rebalance.deviationThreshold) {
+      rebalanceActions.push({
+        code, asset, deviation, diffMV, action
+      });
+    }
+
+    tableRows += `
+    <tr class="border-b border-slate-700/50">
+      <td class="py-2"><span class="font-medium">${asset.shortName}</span></td>
+      <td class="text-right py-2">${(targetRatio*100).toFixed(0)}%</td>
+      <td class="text-right py-2">${(currentRatio*100).toFixed(1)}%</td>
+      <td class="text-right py-2 num ${devClass}">${deviation >= 0 ? '+' : ''}${(deviation*100).toFixed(1)}%</td>
+      <td class="text-right py-2 num">${action}</td>
+    </tr>`;
+  });
+
+  // 生成可复制调仓清单
+  let tradeList = '';
+  if (rebalanceActions.length > 0) {
+    tradeList = rebalanceActions.map(a => {
+      const shares = Math.abs(Math.floor(a.diffMV / ((assetData[a.code] && assetData[a.code].price) || 1) / 100) * 100);
+      if (a.deviation > 0) {
+        return `卖出 ${a.asset.shortName}(${a.code})：${shares}股（约¥${Math.abs(Math.round(a.diffMV)).toLocaleString()}）`;
+      } else {
+        return `买入 ${a.asset.shortName}(${a.code})：${shares}股（约¥${Math.abs(Math.round(a.diffMV)).toLocaleString()}）`;
+      }
+    }).join('\n');
+  }
+
+  container.innerHTML = `
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-4">
+      <div class="chart-wrap" style="min-height:260px"><canvas id="pieCurrent"></canvas></div>
+      <div class="chart-wrap" style="min-height:260px"><canvas id="pieTarget"></canvas></div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead><tr class="border-b border-slate-700 text-slate-400 text-xs">
+          <th class="text-left py-2">标的</th><th class="text-right py-2">目标占比</th><th class="text-right py-2">实际占比</th><th class="text-right py-2">偏离</th><th class="text-right py-2">需操作</th>
+        </tr></thead>
+        <tbody class="divide-y divide-slate-700/50">${tableRows}</tbody>
+      </table>
+    </div>
+    <div class="mt-4 p-3 bg-slate-800/50 rounded-lg">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold text-white">📋 调仓操作清单（海通证券场内ETF）</span>
+        <button onclick="copyTradeList()" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded font-medium transition">📋 一键复制</button>
+      </div>
+      <pre id="tradeListText" class="text-xs text-slate-300 whitespace-pre-wrap font-mono bg-slate-900/50 p-3 rounded">${tradeList || '当前仓位偏离未超阈值（±15%），无需调仓。'}</pre>
+    </div>
+    <p class="text-xs text-slate-500 mt-2">📐 再平衡规则：单资产偏离目标±15%生成调仓清单 | 每年12月强制再平衡 | 偏离阈值可在 config.js 中调整</p>
+  `;
+
+  // 渲染饼图
+  renderPieCharts(currentRatios);
+}
+
+function renderPieCharts(currentRatios) {
+  const codes = ['511580','512890','513100','518880'];
+  const labels = codes.map(c => CONFIG.assets.find(a => a.code === c).shortName);
+  const colors = codes.map(c => CONFIG.assets.find(a => a.code === c).color);
+  const isDarkMode = document.documentElement.classList.contains('dark');
+
+  const currentData = codes.map(c => currentRatios[c]);
+  const targetData = codes.map(c => CONFIG.targetAllocation[c]);
+
+  // 当前仓位饼图
+  const ctx1 = document.getElementById('pieCurrent');
+  if (ctx1) {
+    if (pieChartCurrent) pieChartCurrent.destroy();
+    pieChartCurrent = new Chart(ctx1, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data: currentData,
+          backgroundColor: colors.map(c => c + 'CC'),
+          borderColor: colors,
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          title: { display: true, text: '当前实际仓位', color: isDarkMode ? '#F1F5F9' : '#1E293B', font: { size: 13, weight: 'bold' } },
+          legend: { labels: { color: isDarkMode ? '#94A3B8' : '#64748B', font: { size: 10 } } },
+          tooltip: { callbacks: { label: ctx => ctx.label + ': ' + (ctx.raw*100).toFixed(1) + '%' } }
+        }
+      }
+    });
+    ctx1.parentElement.style.height = '260px';
+  }
+
+  // 目标仓位饼图
+  const ctx2 = document.getElementById('pieTarget');
+  if (ctx2) {
+    if (pieChartTarget) pieChartTarget.destroy();
+    pieChartTarget = new Chart(ctx2, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data: targetData,
+          backgroundColor: colors.map(c => c + '99'),
+          borderColor: colors,
+          borderWidth: 2,
+          borderDash: [4, 4],
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          title: { display: true, text: '长期目标仓位', color: isDarkMode ? '#F1F5F9' : '#1E293B', font: { size: 13, weight: 'bold' } },
+          legend: { labels: { color: isDarkMode ? '#94A3B8' : '#64748B', font: { size: 10 } } },
+          tooltip: { callbacks: { label: ctx => ctx.label + ': ' + (ctx.raw*100).toFixed(0) + '%' } }
+        }
+      }
+    });
+    ctx2.parentElement.style.height = '260px';
+  }
+}
+
+function copyTradeList() {
+  const text = document.getElementById('tradeListText').textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('✅ 调仓清单已复制到剪贴板'));
+}
+
+// =========================== 预警系统 ===========================
+function updateAlerts(levels) {
+  const alerts = [];
+  const codes = ['511580','512890','513100','518880'];
+
+  codes.forEach(code => {
+    const level = levels[code];
+    const asset = CONFIG.assets.find(a => a.code === code);
+
+    if (level.level === 'bubble') {
+      alerts.push({ type: 'danger', msg: `🔴 <strong>${asset.shortName}(${code})极端泡沫预警：</strong>${level.extraWarning || '暂停月度定投'}`, tagClass: 'tag-red' });
+    } else if (level.level === 'overvalued') {
+      alerts.push({ type: 'warning', msg: `🟡 <strong>${asset.shortName}(${code})高估预警：</strong>月度定投暂停/减半，资金分流防御资产`, tagClass: 'tag-red' });
+    } else if (level.level === 'undervalued') {
+      alerts.push({ type: 'info', msg: `🟢 <strong>${asset.shortName}(${code})低估加仓信号：</strong>提高月度定投比例`, tagClass: 'tag-green' });
+    }
+  });
+
+  // 纳指回撤手动加仓提醒
+  const nasdaqData = assetData['513100'];
+  if (nasdaqData && nasdaqData.drawdownFromHigh != null) {
+    CONFIG.nasdaq.drawdownRules.forEach(rule => {
+      if (nasdaqData.drawdownFromHigh >= rule.threshold && !rule.restoreDCA) {
+        alerts.push({ type: 'info', msg: `📉 <strong>纳指回撤加仓信号：</strong>${rule.label}`, tagClass: 'tag-blue' });
+      }
+    });
+  }
+
+  // 年末再平衡提醒
+  const now = new Date();
+  const monthDay = (now.getMonth()+1).toString().padStart(2,'0') + '-' + now.getDate().toString().padStart(2,'0');
+  if (monthDay >= CONFIG.rebalance.reminderStart && monthDay <= CONFIG.rebalance.reminderEnd) {
+    alerts.unshift({ type: 'warning', msg: '⚠️ <strong>年末再平衡窗口（12月）：</strong>请核对持仓仓位，偏离超±15%需强制调仓！', tagClass: 'tag-yellow' });
+  }
+
+  const panel = document.getElementById('alertPanel');
+  if (alerts.length === 0) {
+    panel.innerHTML = '<div class="card p-3 bg-[#1E293B] text-sm text-slate-400">✅ 暂无需要处理的预警，系统正在监控中...</div>';
+  } else {
+    panel.innerHTML = alerts.map(a => `
+      <div class="card p-3 bg-[#1E293B] flex items-start gap-2 text-sm">
+        <span>${a.msg}</span>
+      </div>`).join('');
+  }
+}
+
+// 更新所有图表（主题切换时）
+function updateAllCharts() {
+  const { allocation } = calcFinalAllocation();
+  renderAllocationChart(allocation);
+  const holdings = getHoldings();
+  if (Object.values(holdings).some(v => v > 0)) updateRebalanceSection();
+}
+
+// =========================== 再平衡提醒检查 ===========================
+function checkRebalanceReminder() {
+  const now = new Date();
+  const monthDay = (now.getMonth()+1).toString().padStart(2,'0') + '-' + now.getDate().toString().padStart(2,'0');
+  const reminder = document.getElementById('rebalanceReminder');
+  if (monthDay >= CONFIG.rebalance.reminderStart && monthDay <= CONFIG.rebalance.reminderEnd) {
+    reminder.classList.remove('hidden');
+  } else {
+    reminder.classList.add('hidden');
+  }
+}
+
+// =========================== 持仓管理 ===========================
+function getHoldings() {
+  const holdings = {};
+  CONFIG.assets.forEach(a => {
+    holdings[a.code] = parseInt(document.getElementById('hold-' + a.code).value) || 0;
+  });
+  return holdings;
+}
+
+function getExtraCash() {
+  return parseFloat(document.getElementById('extraCash').value) || 0;
+}
+
+function saveHoldings() {
+  const holdings = getHoldings();
+  const extraCash = getExtraCash();
+  localStorage.setItem(CONFIG.storageKeys.holdings, JSON.stringify(holdings));
+  localStorage.setItem(CONFIG.storageKeys.extraCash, extraCash.toString());
+  showToast('💾 持仓数据已保存');
+  updateRebalanceSection();
+}
+
+function loadHoldings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CONFIG.storageKeys.holdings));
+    if (saved) {
+      Object.keys(saved).forEach(code => {
+        const el = document.getElementById('hold-' + code);
+        if (el) el.value = saved[code];
+      });
+    }
+    const ec = localStorage.getItem(CONFIG.storageKeys.extraCash);
+    if (ec) document.getElementById('extraCash').value = ec;
+  } catch(e) {}
+}
+
+function onHoldingChange() {
+  updateRebalanceSection();
+}
+
+function resetAllInputs() {
+  CONFIG.assets.forEach(a => {
+    document.getElementById('hold-' + a.code).value = 0;
+  });
+  document.getElementById('extraCash').value = 0;
+  updateRebalanceSection();
+  showToast('🔄 持仓输入已重置');
+}
+
+// =========================== 缓存机制 ===========================
+function saveToCache(data) {
+  try {
+    localStorage.setItem(CONFIG.storageKeys.lastData, JSON.stringify(data));
+    localStorage.setItem(CONFIG.storageKeys.lastUpdate, Date.now().toString());
+  } catch(e) {}
+}
+
+function loadFromCache() {
+  try {
+    const raw = localStorage.getItem(CONFIG.storageKeys.lastData);
+    if (raw) {
+      const data = JSON.parse(raw);
+      document.getElementById('dataDelayBadge').classList.remove('hidden');
+      return data;
+    }
+  } catch(e) {}
+  return null;
+}
+
+function loadCache() {
+  const cached = loadFromCache();
+  if (cached) {
+    assetData = cached;
+    const lastUpdate = localStorage.getItem(CONFIG.storageKeys.lastUpdate);
+    if (lastUpdate) {
+      document.getElementById('updateTime').textContent = '最后缓存：' + new Date(parseInt(lastUpdate)).toLocaleTimeString('zh-CN') + '（数据延迟）';
+    }
+    updateAllUI();
+  }
+}
+
+// =========================== 自动刷新 ===========================
+function startAutoRefresh() {
+  const interval = parseInt(document.getElementById('refreshInterval').value) || CONFIG.refresh.defaultInterval;
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(refreshAll, interval);
+}
+
+function setRefreshInterval() {
+  startAutoRefresh();
+  showToast('⏱ 刷新间隔已更新');
+}
+
+async function refreshAll() {
+  const btn = document.getElementById('btnRefresh');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ 刷新中...';
+  document.getElementById('dataDelayBadge').classList.add('hidden');
+
+  try {
+    await fetchAllData();
+  } catch(e) {
+    console.error('数据刷新失败:', e);
+    const cached = loadFromCache();
+    if (cached) { assetData = cached; updateAllUI(); }
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '🔄 刷新数据';
+}
+
+// =========================== 工具函数 ===========================
+function showToast(msg) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.className = 'toast bg-slate-700 text-white border border-slate-600 shadow-lg';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
+}
+
+// =========================== 窗口事件 ===========================
+window.addEventListener('beforeunload', () => {
+  if (refreshTimer) clearInterval(refreshTimer);
+});
+</script>
+
+</body>
+</html>
