@@ -30,8 +30,8 @@
       "change_pct": -0.71,
       "code": "513100",
       "date": "2026-06-22",
-      "high": 2.31,
-      "low": 2.24,
+      "high": 2.311,
+      "low": 2.242,
       "name": "纳指ETF国泰",
       "nasdaq_price": 22484.07,
       "nasdaq_price_change": 99.37,
@@ -45,8 +45,8 @@
       "change_pct": -2.16,
       "code": "518880",
       "date": "2026-06-22",
-      "gold_price_cny": 30382.58,
-      "gold_price_usd": 4190.7,
+      "gold_price_cny": 30383.3,
+      "gold_price_usd": 4190.8,
       "high": 8.742,
       "low": 8.655,
       "name": "黄金ETF华安",
@@ -58,5 +58,5 @@
     }
   ],
   "market_status": "closed",
-  "update_time": "2026-06-22 14:37:12"
+  "update_time": "2026-06-22 18:44:30"
 }
