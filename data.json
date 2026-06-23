@@ -14,14 +14,14 @@
       "volume": 266101
     },
     {
-      "change_pct": 0.54,
+      "change_pct": 0.36,
       "code": "512890",
       "date": "2026-06-23",
       "high": 1.13,
       "low": 1.11,
       "name": "红利低波ETF华泰柏瑞",
       "prev_close": 1.114,
-      "price": 1.12,
+      "price": 1.118,
       "short_name": "红利低波",
       "type": "dividend",
       "volume": 8854411
@@ -42,21 +42,21 @@
       "volume": 5783018
     },
     {
-      "change_pct": -2.02,
+      "change_pct": -2.05,
       "code": "518880",
       "date": "2026-06-23",
-      "gold_price_cny": 29844.62,
-      "gold_price_usd": 4116.5,
-      "high": 8.67,
-      "low": 8.53,
+      "gold_price_cny": 29864.92,
+      "gold_price_usd": 4119.3,
+      "high": 8.674,
+      "low": 8.525,
       "name": "黄金ETF华安",
       "prev_close": 8.716,
-      "price": 8.54,
+      "price": 8.537,
       "short_name": "黄金",
       "type": "gold",
       "volume": 4256305
     }
   ],
   "market_status": "closed",
-  "update_time": "2026-06-23 09:35:17"
+  "update_time": "2026-06-23 12:31:32"
 }
