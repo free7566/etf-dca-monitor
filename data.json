@@ -1,62 +1,62 @@
 {
   "etfs": [
     {
-      "change_pct": 0.02,
+      "change_pct": -0.01,
       "code": "511580",
-      "date": "2026-06-29",
-      "high": 109.448,
-      "low": 109.411,
+      "date": "2026-06-30",
+      "high": 109.46,
+      "low": 109.43,
       "name": "国债政金债ETF招商",
-      "prev_close": 109.43,
-      "price": 109.447,
+      "prev_close": 109.447,
+      "price": 109.44,
       "short_name": "短债固收",
       "type": "bond",
-      "volume": 51626
+      "volume": 33316
     },
     {
-      "change_pct": 0.74,
+      "change_pct": -1.74,
       "code": "512890",
-      "date": "2026-06-29",
-      "high": 1.093,
-      "low": 1.062,
+      "date": "2026-06-30",
+      "high": 1.09,
+      "low": 1.07,
       "name": "红利低波ETF华泰柏瑞",
-      "prev_close": 1.081,
-      "price": 1.089,
+      "prev_close": 1.089,
+      "price": 1.07,
       "short_name": "红利低波",
       "type": "dividend",
-      "volume": 8286960
+      "volume": 5455208
     },
     {
-      "change_pct": 0.93,
+      "change_pct": 1.01,
       "code": "513100",
-      "date": "2026-06-29",
-      "high": 2.18,
-      "low": 2.147,
+      "date": "2026-06-30",
+      "high": 2.21,
+      "low": 2.2,
       "name": "纳指ETF国泰",
       "nasdaq_price": 22484.07,
       "nasdaq_price_change": 99.37,
-      "prev_close": 2.158,
-      "price": 2.178,
+      "prev_close": 2.178,
+      "price": 2.2,
       "short_name": "纳指100",
       "type": "nasdaq",
-      "volume": 3128648
+      "volume": 1628714
     },
     {
-      "change_pct": 0.7,
+      "change_pct": -2.36,
       "code": "518880",
-      "date": "2026-06-29",
-      "gold_price_cny": 29041.32,
-      "gold_price_usd": 4005.7,
-      "high": 8.479,
-      "low": 8.404,
+      "date": "2026-06-30",
+      "gold_price_cny": 28939.1,
+      "gold_price_usd": 3991.6,
+      "high": 8.28,
+      "low": 8.22,
       "name": "黄金ETF华安",
-      "prev_close": 8.39,
-      "price": 8.449,
+      "prev_close": 8.449,
+      "price": 8.25,
       "short_name": "黄金",
       "type": "gold",
-      "volume": 3398349
+      "volume": 2123066
     }
   ],
   "market_status": "closed",
-  "update_time": "2026-06-30 00:10:34"
+  "update_time": "2026-06-30 04:43:55"
 }
