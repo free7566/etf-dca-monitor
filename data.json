@@ -17,8 +17,8 @@
       "change_pct": 1.45,
       "code": "512890",
       "date": "2026-07-08",
-      "high": 1.12,
-      "low": 1.1,
+      "high": 1.121,
+      "low": 1.098,
       "name": "红利低波ETF华泰柏瑞",
       "prev_close": 1.104,
       "price": 1.12,
@@ -27,36 +27,36 @@
       "volume": 8732696
     },
     {
-      "change_pct": -1.34,
+      "change_pct": -1.29,
       "code": "513100",
       "date": "2026-07-08",
-      "high": 2.16,
+      "high": 2.164,
       "low": 2.14,
       "name": "纳指ETF国泰",
       "nasdaq_price": 22484.07,
       "nasdaq_price_change": 99.37,
       "prev_close": 2.169,
-      "price": 2.14,
+      "price": 2.141,
       "short_name": "纳指100",
       "type": "nasdaq",
       "volume": 1910142
     },
     {
-      "change_pct": -0.08,
+      "change_pct": -0.09,
       "code": "518880",
       "date": "2026-07-08",
-      "gold_price_cny": 29522.0,
-      "gold_price_usd": 4072.0,
-      "high": 8.61,
+      "gold_price_cny": 29271.15,
+      "gold_price_usd": 4037.4,
+      "high": 8.605,
       "low": 8.53,
       "name": "黄金ETF华安",
       "prev_close": 8.597,
-      "price": 8.59,
+      "price": 8.589,
       "short_name": "黄金",
       "type": "gold",
       "volume": 2410682
     }
   ],
   "market_status": "closed",
-  "update_time": "2026-07-08 13:59:40"
+  "update_time": "2026-07-08 16:05:19"
 }
