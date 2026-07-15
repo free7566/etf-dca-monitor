@@ -1,14 +1,14 @@
 {
   "etfs": [
     {
-      "change_pct": 0.0,
+      "change_pct": -0.0,
       "code": "511580",
       "date": "2026-07-15",
-      "high": 109.48,
-      "low": 109.46,
+      "high": 109.478,
+      "low": 109.463,
       "name": "国债政金债ETF招商",
       "prev_close": 109.467,
-      "price": 109.47,
+      "price": 109.465,
       "short_name": "短债固收",
       "type": "bond",
       "volume": 385810
@@ -45,8 +45,8 @@
       "change_pct": -0.04,
       "code": "518880",
       "date": "2026-07-15",
-      "gold_price_cny": 29176.18,
-      "gold_price_usd": 4024.3,
+      "gold_price_cny": 29206.62,
+      "gold_price_usd": 4028.5,
       "high": 8.42,
       "low": 8.35,
       "name": "黄金ETF华安",
@@ -58,5 +58,5 @@
     }
   ],
   "market_status": "closed",
-  "update_time": "2026-07-15 07:28:25"
+  "update_time": "2026-07-15 09:30:11"
 }
