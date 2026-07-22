@@ -3,60 +3,60 @@
     {
       "change_pct": 0.0,
       "code": "511580",
-      "date": "2026-07-21",
+      "date": "2026-07-22",
       "high": 109.48,
       "low": 109.46,
       "name": "国债政金债ETF招商",
-      "prev_close": 109.467,
-      "price": 109.469,
+      "prev_close": 109.469,
+      "price": 109.47,
       "short_name": "短债固收",
       "type": "bond",
-      "volume": 303372
+      "volume": 245843
     },
     {
-      "change_pct": -1.02,
+      "change_pct": -0.86,
       "code": "512890",
-      "date": "2026-07-21",
-      "high": 1.189,
-      "low": 1.159,
+      "date": "2026-07-22",
+      "high": 1.16,
+      "low": 1.15,
       "name": "红利低波ETF华泰柏瑞",
-      "prev_close": 1.172,
-      "price": 1.16,
+      "prev_close": 1.16,
+      "price": 1.15,
       "short_name": "红利低波",
       "type": "dividend",
-      "volume": 13687022
+      "volume": 6237838
     },
     {
-      "change_pct": 1.62,
+      "change_pct": 0.94,
       "code": "513100",
-      "date": "2026-07-21",
-      "high": 2.133,
-      "low": 2.1,
+      "date": "2026-07-22",
+      "high": 2.15,
+      "low": 2.14,
       "name": "纳指ETF国泰",
       "nasdaq_price": 22484.07,
       "nasdaq_price_change": 99.37,
-      "prev_close": 2.096,
-      "price": 2.13,
+      "prev_close": 2.13,
+      "price": 2.15,
       "short_name": "纳指100",
       "type": "nasdaq",
-      "volume": 2770344
+      "volume": 1101251
     },
     {
-      "change_pct": 1.8,
+      "change_pct": 1.56,
       "code": "518880",
-      "date": "2026-07-21",
-      "gold_price_cny": 29696.73,
-      "gold_price_usd": 4096.1,
-      "high": 8.477,
-      "low": 8.345,
+      "date": "2026-07-22",
+      "gold_price_cny": 29940.33,
+      "gold_price_usd": 4129.7,
+      "high": 8.61,
+      "low": 8.55,
       "name": "黄金ETF华安",
-      "prev_close": 8.318,
-      "price": 8.468,
+      "prev_close": 8.468,
+      "price": 8.6,
       "short_name": "黄金",
       "type": "gold",
-      "volume": 3211973
+      "volume": 3402429
     }
   ],
   "market_status": "closed",
-  "update_time": "2026-07-22 00:59:00"
+  "update_time": "2026-07-22 04:22:38"
 }
