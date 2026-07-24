@@ -11,7 +11,7 @@
       "price": 109.5,
       "short_name": "短债固收",
       "type": "bond",
-      "volume": 382975
+      "volume": 415459
     },
     {
       "change_pct": -0.34,
@@ -24,10 +24,10 @@
       "price": 1.17,
       "short_name": "红利低波",
       "type": "dividend",
-      "volume": 2923164
+      "volume": 4679535
     },
     {
-      "change_pct": -1.45,
+      "change_pct": -0.99,
       "code": "513100",
       "date": "2026-07-24",
       "high": 2.11,
@@ -36,27 +36,27 @@
       "nasdaq_price": 22484.07,
       "nasdaq_price_change": 99.37,
       "prev_close": 2.131,
-      "price": 2.1,
+      "price": 2.11,
       "short_name": "纳指100",
       "type": "nasdaq",
-      "volume": 784613
+      "volume": 1100642
     },
     {
-      "change_pct": -2.1,
+      "change_pct": -2.22,
       "code": "518880",
       "date": "2026-07-24",
-      "gold_price_cny": 29241.43,
-      "gold_price_usd": 4033.3,
+      "gold_price_cny": 29196.48,
+      "gold_price_usd": 4027.1,
       "high": 8.42,
       "low": 8.36,
       "name": "黄金ETF华安",
       "prev_close": 8.56,
-      "price": 8.38,
+      "price": 8.37,
       "short_name": "黄金",
       "type": "gold",
-      "volume": 2096640
+      "volume": 2863559
     }
   ],
   "market_status": "closed",
-  "update_time": "2026-07-24 03:18:02"
+  "update_time": "2026-07-24 06:08:45"
 }
