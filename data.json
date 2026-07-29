@@ -42,21 +42,21 @@
       "volume": 1382572
     },
     {
-      "change_pct": -0.12,
+      "change_pct": -0.1,
       "code": "518880",
       "date": "2026-07-29",
-      "gold_price_cny": 29076.85,
-      "gold_price_usd": 4010.6,
-      "high": 8.4,
+      "gold_price_cny": 29127.6,
+      "gold_price_usd": 4017.6,
+      "high": 8.399,
       "low": 8.34,
       "name": "黄金ETF华安",
       "prev_close": 8.4,
-      "price": 8.39,
+      "price": 8.392,
       "short_name": "黄金",
       "type": "gold",
       "volume": 2715564
     }
   ],
   "market_status": "closed",
-  "update_time": "2026-07-29 15:11:35"
+  "update_time": "2026-07-29 16:48:47"
 }
