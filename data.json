@@ -33,8 +33,6 @@
       "high": 2.119,
       "low": 2.107,
       "name": "纳指ETF国泰",
-      "nasdaq_price": 22484.07,
-      "nasdaq_price_change": 99.37,
       "prev_close": 2.041,
       "price": 2.112,
       "short_name": "纳指100",
@@ -58,5 +56,5 @@
     }
   ],
   "market_status": "closed",
-  "update_time": "2026-08-01 18:01:35"
+  "update_time": "2026-08-01 19:42:11"
 }
