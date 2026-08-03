@@ -5,26 +5,26 @@
       "code": "511580",
       "date": "2026-08-03",
       "high": 109.57,
-      "low": 109.56,
+      "low": 109.55,
       "name": "国债政金债ETF招商",
       "prev_close": 109.569,
       "price": 109.56,
       "short_name": "短债固收",
       "type": "bond",
-      "volume": 272214
+      "volume": 275622
     },
     {
-      "change_pct": -0.33,
+      "change_pct": -0.08,
       "code": "512890",
       "date": "2026-08-03",
       "high": 1.21,
-      "low": 1.2,
+      "low": 1.195,
       "name": "红利低波ETF华泰柏瑞",
       "prev_close": 1.204,
-      "price": 1.2,
+      "price": 1.203,
       "short_name": "红利低波",
       "type": "dividend",
-      "volume": 4651427
+      "volume": 5687572
     },
     {
       "change_pct": 0.85,
@@ -39,24 +39,24 @@
       "price": 2.13,
       "short_name": "纳指100",
       "type": "nasdaq",
-      "volume": 813025
+      "volume": 1022276
     },
     {
-      "change_pct": -0.04,
+      "change_pct": -0.19,
       "code": "518880",
       "date": "2026-08-03",
-      "gold_price_cny": 29511.12,
-      "gold_price_usd": 4070.5,
+      "gold_price_cny": 29411.8,
+      "gold_price_usd": 4056.8,
       "high": 8.43,
-      "low": 8.38,
+      "low": 8.383,
       "name": "黄金ETF华安",
       "prev_close": 8.433,
-      "price": 8.43,
+      "price": 8.417,
       "short_name": "黄金",
       "type": "gold",
-      "volume": 2773559
+      "volume": 3223144
     }
   ],
   "market_status": "closed",
-  "update_time": "2026-08-03 06:20:48"
+  "update_time": "2026-08-03 10:11:57"
 }
