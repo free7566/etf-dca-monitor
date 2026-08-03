@@ -4,11 +4,11 @@
       "change_pct": -0.01,
       "code": "511580",
       "date": "2026-08-03",
-      "high": 109.57,
-      "low": 109.55,
+      "high": 109.572,
+      "low": 109.548,
       "name": "国债政金债ETF招商",
       "prev_close": 109.569,
-      "price": 109.56,
+      "price": 109.558,
       "short_name": "短债固收",
       "type": "bond",
       "volume": 275622
@@ -33,8 +33,6 @@
       "high": 2.13,
       "low": 2.12,
       "name": "纳指ETF国泰",
-      "nasdaq_price": 22484.07,
-      "nasdaq_price_change": 99.37,
       "prev_close": 2.112,
       "price": 2.13,
       "short_name": "纳指100",
@@ -45,8 +43,8 @@
       "change_pct": -0.19,
       "code": "518880",
       "date": "2026-08-03",
-      "gold_price_cny": 29411.8,
-      "gold_price_usd": 4056.8,
+      "gold_price_cny": 29252.3,
+      "gold_price_usd": 4034.8,
       "high": 8.43,
       "low": 8.383,
       "name": "黄金ETF华安",
@@ -58,5 +56,5 @@
     }
   ],
   "market_status": "closed",
-  "update_time": "2026-08-03 10:11:57"
+  "update_time": "2026-08-03 13:24:24"
 }
