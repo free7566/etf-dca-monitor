@@ -45,8 +45,8 @@
       "change_pct": 1.01,
       "code": "518880",
       "date": "2026-08-12",
-      "gold_price_cny": 31902.17,
-      "gold_price_usd": 4400.3,
+      "gold_price_cny": 31944.23,
+      "gold_price_usd": 4406.1,
       "high": 9.12,
       "low": 9.05,
       "name": "黄金ETF华安",
@@ -58,5 +58,5 @@
     }
   ],
   "market_status": "closed",
-  "update_time": "2026-08-12 07:20:43"
+  "update_time": "2026-08-12 08:46:46"
 }
