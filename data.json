@@ -27,36 +27,36 @@
       "volume": 4470670
     },
     {
-      "change_pct": 0.68,
+      "change_pct": 0.5,
       "code": "513100",
       "date": "2026-08-12",
-      "high": 2.23,
-      "low": 2.2,
+      "high": 2.231,
+      "low": 2.203,
       "name": "纳指ETF国泰",
       "nasdaq_price": 22484.07,
       "nasdaq_price_change": 99.37,
       "prev_close": 2.215,
-      "price": 2.23,
+      "price": 2.226,
       "short_name": "纳指100",
       "type": "nasdaq",
       "volume": 1365827
     },
     {
-      "change_pct": 1.01,
+      "change_pct": 1.04,
       "code": "518880",
       "date": "2026-08-12",
-      "gold_price_cny": 32062.4,
-      "gold_price_usd": 4422.4,
-      "high": 9.12,
-      "low": 9.05,
+      "gold_price_cny": 31921.02,
+      "gold_price_usd": 4402.9,
+      "high": 9.121,
+      "low": 9.051,
       "name": "黄金ETF华安",
       "prev_close": 9.009,
-      "price": 9.1,
+      "price": 9.103,
       "short_name": "黄金",
       "type": "gold",
       "volume": 5861954
     }
   ],
   "market_status": "closed",
-  "update_time": "2026-08-12 15:58:12"
+  "update_time": "2026-08-12 17:01:39"
 }
