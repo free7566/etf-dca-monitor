@@ -4,11 +4,11 @@
       "change_pct": 0.02,
       "code": "511580",
       "date": "2026-08-21",
-      "high": 109.67,
-      "low": 109.66,
+      "high": 109.674,
+      "low": 109.661,
       "name": "国债政金债ETF招商",
       "prev_close": 109.651,
-      "price": 109.67,
+      "price": 109.668,
       "short_name": "短债固收",
       "type": "bond",
       "volume": 561093
@@ -45,8 +45,8 @@
       "change_pct": 1.69,
       "code": "518880",
       "date": "2026-08-21",
-      "gold_price_cny": 33253.58,
-      "gold_price_usd": 4586.7,
+      "gold_price_cny": 33229.65,
+      "gold_price_usd": 4583.4,
       "high": 9.39,
       "low": 9.3,
       "name": "黄金ETF华安",
@@ -58,5 +58,5 @@
     }
   ],
   "market_status": "closed",
-  "update_time": "2026-08-21 09:06:41"
+  "update_time": "2026-08-21 09:59:34"
 }
